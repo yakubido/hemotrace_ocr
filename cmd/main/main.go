@@ -1,11 +1,16 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"log"
 
 	"github.com/yakubido/hemotrace_ocr/config"
+	"github.com/yakubido/hemotrace_ocr/lib/sigtrap"
+	"github.com/yakubido/hemotrace_ocr/queue"
 	"github.com/yakubido/hemotrace_ocr/repo"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 // var version string
@@ -25,19 +30,25 @@ func main() {
 	defer logger.Sync()
 
 	tasks := repo.NewTask(logger.Named("tasks"), cfg)
+	consumer, err := queue.New(logger.Named("Consumer"), cfg, tasks)
+	if err != nil {
+		logger.Fatal("queu consumer init", zap.Error(err))
+	}
 
-	_ = tasks
+	group, ctx := errgroup.WithContext(context.Background())
+
+	group.Go(func() error { return consumer.Run(ctx) })
+
+	if err := group.Wait(); err != nil && !errors.Is(err, sigtrap.ErrSignalReceived) {
+		logger.Error("service error", zap.Error(err))
+	}
+
+	logger.Info("shutting down")
 
 	// 	mqURL := os.Getenv("MQ_URL")
 	// 	if mqURL == "" {
 	// 		mqURL = "amqp://guest:guest@localhost:5672/"
 	// 	}
-
-	// 	err := queue.Consume(mqURL, handleTask)
-	// 	if err != nil {
-	// 		log.Fatalf("[FATAL] Failed to start consumer: %v", err)
-	// 	}
-	// }
 
 	// func handleTask(body []byte) {
 	// 	var task OCRTask

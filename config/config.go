@@ -10,9 +10,14 @@ const envPrefix = "OCR"
 
 type Config struct {
 	Debug bool
+
+	QueueConsumer  ConsumerConfig
+	QueuePublisher PublisherConfig
 }
 
 type ConsumerConfig struct {
+	DSN   string
+	Topic string
 }
 
 type PublisherConfig struct {
